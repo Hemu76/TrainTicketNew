@@ -1,0 +1,238 @@
+package ticketBooking;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+
+public class JDBC {
+	public ArrayList<Stations> connection() throws ClassNotFoundException, SQLException {
+		Class.forName("org.postgresql.Driver");
+		Connection c = DriverManager.getConnection("jdbc:postgresql://192.168.110.48:5432/plf_training",
+				"plf_training_admin", "pff123");
+		Statement st = c.createStatement();
+		String query = "select * from Hemu_trains";
+		ResultSet rs = st.executeQuery(query);
+		ArrayList<Stations> as = new ArrayList<>();
+		while (rs.next()) {
+			as.add(new Stations(rs.getString(4), rs.getString(5)));
+		}
+		return as;
+	}
+
+	public ArrayList<Train> trainconnection(String from, String to) throws ClassNotFoundException, SQLException {
+		Class.forName("org.postgresql.Driver");
+		Connection c = DriverManager.getConnection("jdbc:postgresql://192.168.110.48:5432/plf_training",
+				"plf_training_admin", "pff123");
+		Statement st = c.createStatement();
+		// String query = "select * from Hemu_trains where trn_start=${from} and trn_end=${to}";
+		PreparedStatement ps = c.prepareCall("select * from Hemu_trains where trn_start=? and trn_end=?");
+		ps.setString(1, from);
+		ps.setString(2, to);
+		ArrayList<Train> at = new ArrayList<>();
+		ResultSet rs = ps.executeQuery();
+
+		while (rs.next()) {
+			at.add(new Train(rs.getString(2)));
+		}
+		return at;
+	}
+}
+--------------
+package ticketBooking;
+
+public class Stations {
+	String from;
+	String to;
+
+	public Stations(String from, String to) {
+		super();
+		this.from = from;
+		this.to = to;
+	}
+
+	public String getFrom() {
+		return from;
+	}
+
+	public void setFrom(String from) {
+		this.from = from;
+	}
+
+	public String getTo() {
+		return to;
+	}
+
+	public void setTo(String to) {
+		this.to = to;
+	}
+
+}
+-------------
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Ticket Booking</title>
+</head>
+<body>
+<center>
+	<h1>Ticket Booking</h1>
+	<label>From:<select id="from" name="ff"><option>select</option></select></label>
+	<label>To  :<select id="to" name="tt"><option>select</option></select></label>
+	<button onclick="hi()">search</button><br></br>
+	<label>Trains:<select id="trains"><option>select</option></select></label><br></br>
+	<label>Class :<select id="class"><option>select</option></select></label>
+	<label>Date  :<input type="date" id="date"></label><br></br>
+</center>
+<script>
+	var xh=new XMLHttpRequest();
+	xh.open('GET','serv',true);
+	xh.onreadystatechange=function(){
+		if(xh.readyState==4){
+			var ft=JSON.parse(xh.responseText);
+			console.log(ft);
+			sett(ft);
+		}
+	}
+	xh.send();
+	function sett(data){
+		var from = document.getElementById("from");	
+		data.forEach(function(da){
+			var option = document.createElement("option");
+			option.textContent=da.From; 
+			from.appendChild(option);
+		})	
+		var to = document.getElementById("to");	
+		data.forEach(function(da){
+			var option = document.createElement("option");
+			option.textContent=da.to; 
+			to.appendChild(option);
+		})
+	}
+	function hi(){
+	var f = document.getElementById("from").value;
+	var t = document.getElementById("to").value;
+	console.log(f,t);
+	var xh1=new XMLHttpRequest();
+	xh1.open('GET','TrainsServlet?from='+f+'&to='+t,true);
+	xh1.onreadystatechange=function(){
+		if(xh1.readyState==4){
+			console.log("hi");
+			var ft1=JSON.parse(xh1.responseText);
+			console.log("hei");
+			console.log(ft1);
+			settrain(ft1);
+		}
+	}
+	xh1.send();
+	function settrain(dataa){
+		var train = document.getElementById("trains");
+		dataa.forEach(function(itm){
+			var option = document.createElement("option");
+			option.textContent=itm.TL;
+			train.appendChild(option);
+		})
+	}
+	}
+</script>
+</body>
+</html>
+--------------------
+package ticketBooking;
+
+import java.io.IOException;
+import java.util.ArrayList;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+public class StationsServlet extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+
+	protected void doGet(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		JSONArray jsonArray = new JSONArray();
+		try {
+			JDBC con = new JDBC();
+			ArrayList<Stations> ass = con.connection();
+			for (Stations st : ass) {
+				JSONObject js = new JSONObject();
+				js.put("From", st.getFrom());
+				js.put("to", st.getTo());
+				jsonArray.put(js);
+			}
+		} catch (Exception e) {
+		}
+		response.getWriter().write(jsonArray.toString());
+	}
+}
+--------------------
+package ticketBooking;
+
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.ArrayList;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+@WebServlet("/TrainsServlet")
+public class TrainsServlet extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+
+	protected void doGet(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		try {
+			String from = request.getParameter("from");
+			String to = request.getParameter("to");
+			System.out.println(from + "" + to);
+			JDBC J = new JDBC();
+			ArrayList<Train> at = J.trainconnection(from, to);
+			JSONArray jsonArray = new JSONArray();
+			for (Train st : at) {
+				JSONObject js = new JSONObject();
+				js.put("TL", st.getName());
+				jsonArray.put(js);
+			}
+			response.getWriter().write(jsonArray.toString());
+
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+}
+--------------------
+package ticketBooking;
+
+public class Train {
+	String name;
+
+	public Train(String name) {
+		super();
+		this.name = name;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+}
