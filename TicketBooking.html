@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="ISO-8859-1">
+	<title>Ticket Booking</title>
+	<style>
+		table,
+		th,
+		td {
+			border: 1px solid black;
+			border-collapse: collapse;
+		}
+
+		body {
+			font-family: Arial, sans-serif;
+			background-color: #f4f4f4;
+		}
+
+		h1 {
+			color: #333;
+		}
+
+		h2 {
+			color: #444;
+		}
+
+		center {
+			margin-top: 20px;
+		}
+
+		label {
+			display: inline-block;
+			margin-right: 10px;
+			margin-bottom: 5px;
+			color: #555;
+		}
+
+		select,
+		input[type="text"],
+		input[type="date"],
+		button {
+			padding: 5px;
+			border: 1px solid #ccc;
+			border-radius: 3px;
+		}
+
+		table {
+			width: 80%;
+			margin: 20px auto;
+			border-collapse: collapse;
+		}
+
+		th,
+		td {
+			padding: 8px;
+			text-align: center;
+		}
+
+		th {
+			background-color: #333;
+			color: #fff;
+		}
+
+		tr:nth-child(even) {
+			background-color: #f2f2f2;
+		}
+
+		button {
+			background-color: #007bff;
+			color: #fff;
+			border: none;
+			border-radius: 3px;
+			padding: 8px 15px;
+			cursor: pointer;
+		}
+
+		button:hover {
+			background-color: #0056b3;
+		}
+
+		input[type="button"] {
+			background-color: #ccc;
+			color: #333;
+			border: none;
+			border-radius: 3px;
+			padding: 5px 10px;
+			cursor: pointer;
+		}
+
+		input[type="button"]:hover {
+			background-color: #aaa;
+		}
+	</style>
+</head>
+
+<body>
+	<center>
+		<h1>Ticket Booking</h1>
+		<label>From:<select id="from" name="ff">
+				<option>select</option>
+			</select></label>
+		<label>To :<select id="to" name="tt">
+				<option>select</option>
+			</select></label>
+		<button onclick="hi()">search</button><br></br>
+		<label>Trains:<select id="trains">
+				<option>select</option>
+			</select></label><br></br>
+		<label>Class :<select id="class">
+				<option>select</option>
+				<option>AC</option>
+				<option>Sleeper</option>
+				<option>General</option>
+			</select></label>
+		<label>Date :<input type="date" id="date"></label><br></br>
+		<form>
+			<label>Name :<input type="text" id="name"></label>
+			<label>Age :<input type="text" id="age"></label>
+			<label>Gender:<select id="gender">
+					<option>select</option>
+					<option>Male</option>
+					<option>Female</option>
+				</select></label><br></br>
+			<input type="button" onclick="details()" value="submit">
+		</form>
+		<h2>Passengers Details</h2>
+		<table>
+			<thead>
+				<th>Name</th>
+				<th>Age</th>
+				<th>Gender</th>
+				<th>Date</th>
+				<th>Remove</th>
+			</thead>
+			<tbody id="container">
+			</tbody>
+		</table><br></br>
+		<button id="book" onclick="book()">Book</button>
+		<input type="button" onclick="clear1()" value="Clear">
+	</center>
+	<script>
+		var xh = new XMLHttpRequest();
+		xh.open('GET', 'StationsServlet', true);
+		xh.onreadystatechange = function () {
+			if (xh.readyState == 4) {
+				var ft = JSON.parse(xh.responseText);
+				console.log(ft);
+				sett(ft);
+			}
+		}
+		xh.send();
+		function sett(data) {
+			var from = document.getElementById("from");
+			data.forEach(function (da) {
+				var option = document.createElement("option");
+				option.textContent = da.From;
+				from.appendChild(option);
+			})
+			var to = document.getElementById("to");
+			data.forEach(function (da) {
+				var option = document.createElement("option");
+				option.textContent = da.to;
+				to.appendChild(option);
+			})
+		}
+		function hi() {
+			var f = document.getElementById("from").value;
+			var t = document.getElementById("to").value;
+			console.log(f, t);
+			var xh1 = new XMLHttpRequest();
+			xh1.open('GET', 'TrainsServlet?from=' + f + '&to=' + t, true);
+			xh1.onreadystatechange = function () {
+				if (xh1.readyState == 4) {
+					console.log("hi");
+					var ft1 = JSON.parse(xh1.responseText);
+					console.log("hei");
+					console.log(ft1);
+					settrain(ft1);
+				}
+			}
+			xh1.send();
+			function settrain(dataa) {
+				var train = document.getElementById("trains");
+				train.innerHTML = "";
+				dataa.forEach(function (itm) {
+					var option = document.createElement("option");
+					option.textContent = itm.TL;
+					train.appendChild(option);
+				})
+			}
+		};
+		var data = "";
+		function details() {
+			var tbody = document.getElementById('container');
+			var trow = document.createElement('tr');
+			var tdef1 = document.createElement('td');
+			var tdef2 = document.createElement('td');
+			var tdef3 = document.createElement('td');
+			var tdef4 = document.createElement('td');
+			var tdef5 = document.createElement('td');
+			var name = document.getElementById('name').value;
+			var age = document.getElementById('age').value;
+			var gender = document.getElementById('gender').value;
+			var date = document.getElementById('date').value;
+			tdef1.textContent = name;
+			tdef2.textContent = age;
+			tdef3.textContent = gender;
+			tdef4.textContent = date;
+			var button = document.createElement("button");
+			button.textContent = "Remove";
+			button.addEventListener('click', function () {
+				const row = this.parentNode.parentNode;
+				row.innerHTML = "";
+			})
+			tdef5.appendChild(button);
+			trow.appendChild(tdef1);
+			trow.appendChild(tdef2);
+			trow.appendChild(tdef3);
+			trow.appendChild(tdef4);
+			trow.appendChild(tdef5);
+			tbody.appendChild(trow);
+			data += "&name=" + name + "&age=" + age + "&gender=" + gender + "&date=" + date;
+		}
+		function book() {
+			var from = document.getElementById('from').value;
+			var to = document.getElementById('to').value;
+			var train = document.getElementById('trains').value;
+			var cls = document.getElementById('class').value;
+			var dt = document.getElementById('date').value;
+			var tdata = "from=" + from + "&to=" + to + "&train=" + train + "&cls=" + cls + "&date=" + dt;
+			var ss = new XMLHttpRequest();
+			ss.open('GET', 'BookingServlet?' + tdata + data, true)
+			ss.onreadystatechange = function () {
+				if (ss.readyState === 4) {
+					console.log('hello');
+					var resp=ss.responseText;
+					console.log(resp);
+					document.body.innerHTML =resp;
+				}
+			}
+			ss.send();
+
+		}
+		function clear1() {
+			var tbody = document.getElementById('container');
+			tbody.innerHTML = "";
+		}
+	</script>
+</body>
+
+</html>
